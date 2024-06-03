@@ -1,0 +1,15 @@
+version: "3"
+
+# Список команд которые утилита будет выполнять
+tasks:
+  # Первая команда это migrate - которая применяет миграции
+  # task migrate
+  migrate:
+    # Вместо migrate можем просто mig
+    aliases:
+      - mig
+    # Описание команды
+    desc: "Применяем миграции"
+    # Сама команда
+    cmds:
+      - go run ./cmd/migrator --storage-path=./storage/sso.db --migrations-path=./migrations
