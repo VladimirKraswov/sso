@@ -5,8 +5,11 @@ import (
 	"flag"
 	"fmt"
 
+	// Библиотека для миграций
 	"github.com/golang-migrate/migrate/v4"
+	// Драйвер для выполнения миграций SQLite3
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	// Драйвер для получения миграций из файла
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 

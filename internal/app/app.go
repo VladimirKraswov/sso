@@ -2,22 +2,33 @@ package app
 
 import (
 	"log/slog"
-	grpcapp "sso/internal/app/grpc"
 	"time"
+
+	grpcapp "sso/internal/app/grpc"
+	auth "sso/internal/services"
+	"sso/internal/storage/sqlite"
 )
 
 type App struct {
-	GRPCSrv *grpcapp.App
+	GRPCServer *grpcapp.App
 }
 
-func New(log *slog.Logger, grpcPort int, storagePath string, tokenTTL time.Duration) *App {
-	// 1 Инициализировать хранилище (storage)
+func New(
+	log *slog.Logger,
+	grpcPort int,
+	storagePath string,
+	tokenTTL time.Duration,
+) *App {
+	storage, err := sqlite.New(storagePath)
+	if err != nil {
+		panic(err)
+	}
 
-	// 2 Инициализировать сервисный слой
+	authService := auth.New(log, storage, storage, storage, tokenTTL)
 
-	grpcApp := grpcapp.New(log, grpcPort)
+	grpcApp := grpcapp.New(log, authService, grpcPort)
 
 	return &App{
-		GRPCSrv: grpcApp,
+		GRPCServer: grpcApp,
 	}
 }

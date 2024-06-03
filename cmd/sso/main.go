@@ -35,7 +35,7 @@ func main()  {
 	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
 	// 4 - Запустим наш сервер в отдельной горутине, 
 	// пока мы будем в низу ждать записи в канал stop, эта рутина будет обрабатывать запросы
-	go application.GRPCSrv.MustRun()
+	go application.GRPCServer.MustRun()
 
 	// Слушаем сигналы ОС для реализации Graceful shutdown
 	stop := make(chan os.Signal, 1) // Создаем канал в который будем писать сигналы ОС
@@ -46,7 +46,7 @@ func main()  {
 	// ОС послала нам один из сигналов SIGTERM или SIGINT, мы записали его в канал и прочитали в sysSignal
 	log.Info("Stopping application", slog.String("signal", sysSignal.String()))
 	// Корректно завершаем работу сервера
-	application.GRPCSrv.Stop()
+	application.GRPCServer.Stop()
 
 	log.Info("Application stopped")
 }
