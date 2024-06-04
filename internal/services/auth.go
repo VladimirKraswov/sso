@@ -38,9 +38,10 @@ type AppProvider interface {
 }
 
 var (
-	ErrInvalidCredentials = errors.New("Invalid credentials")
-	ErrUserExists = errors.New("User already exists")
-	ErrInvalidAppID = errors.New("Invalid app id")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrUserExists = errors.New("user already exists")
+	ErrInvalidAppID = errors.New("invalid app id")
+	ErrUserNotFound = errors.New("user not found")
 )
 
 // New возвращает новый экземпляр службы аутентификации.

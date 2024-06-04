@@ -30,14 +30,19 @@ func MustLoad() *Config {
 		panic("Config path is empty")
 	}
 
+	return MustLoadByPath(path)
+}
+
+// Вынесем отдельно что бы можно было запускать из тестов с указанием пути
+func MustLoadByPath(configPath string) *Config {
 	// Есть ли файл по указанному пути
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		panic("Config file not exist: " + path)
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		panic("Config file not exist: " + configPath)
 	}
 
 	var cfg Config
 
-	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
+	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
 		panic("File to read config: " + err.Error())
 	}
 

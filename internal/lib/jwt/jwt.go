@@ -9,7 +9,7 @@ import (
 
 func NewToken(user models.User, app models.App, duration time.Duration) (string, error) {
 	// Генерируем токе
-	token := jwt.New(jwt.SigningMethodES256)
+	token := jwt.New(jwt.SigningMethodHS256)
 
 	// Добавляем к токену метаданные
 	claims := token.Claims.(jwt.MapClaims)
