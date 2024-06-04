@@ -11,6 +11,7 @@ import (
 
 	"sso/internal/domain/models"
 	"sso/internal/lib/jwt"
+	"sso/internal/lib/logger/sl"
 	"sso/internal/storage"
 )
 
@@ -66,17 +67,17 @@ func (a *Auth) Login(ctx context.Context, email string, password string, appID i
 	user, err := a.userProvider.User(ctx, email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
-			a.log.Warn("User not found")
+			a.log.Warn("user not found", sl.Err(err))
 
 			return "", fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
 		}
-		a.log.Warn("Failed to get user")
+		a.log.Error("failed to get user", sl.Err(err))
 		return "", fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
 	}
 
 	// Теперь с помощью bcrypt проверим правильный ли пароль ввел юзер
 	if err := bcrypt.CompareHashAndPassword(user.PassHash, []byte(password)); err != nil {
-		a.log.Info("Invalid credentials")
+		a.log.Info("invalid credentials", sl.Err(err))
 		return "", fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
 	}
 
@@ -93,7 +94,7 @@ func (a *Auth) Login(ctx context.Context, email string, password string, appID i
 
 	token, err := jwt.NewToken(user, app, a.tokenTTL)
 	if err != nil {
-		a.log.Error("Failed to generate token")
+		a.log.Error("failed to generate token", sl.Err(err))
 
 		return "", fmt.Errorf("%s: %w", op)
 	}
@@ -115,20 +116,20 @@ func (a *Auth) RegisterNewUser(ctx context.Context, email string, pass string) (
 	// Подсолить значит добавить к паролю рандомную фразу. Бывают более продвинутые технологии, например динамическая соль
 	// Все это мы реализуем с помощью bcrypt из golang.org/x/crypto
 	// bcrypt.GenerateFromPassword - создает соль для пароля и хэширует его, делает она это bcrypt.DefaultCost количество раз
-	pasHash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	passHash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	if err != nil {
-		log.Error("Failed to generate password hash", err)
+		log.Error("failed to generate password hash", sl.Err(err))
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Вызываем метол SaveUser для сохранения пользователя в БД
-	id, err := a.userSaver.SaveUser(ctx, email, pasHash)
+	id, err := a.userSaver.SaveUser(ctx, email, passHash)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserExists) {
 			log.Warn("User already exists")
 			return 0, fmt.Errorf("%s: %w", op, ErrUserExists)
 		}
-		log.Error("fail to save user", err)
+		log.Error("failed to save user", sl.Err(err))
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
