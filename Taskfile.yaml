@@ -13,13 +13,10 @@ tasks:
     # Сама команда
     cmds:
       - go run ./cmd/migrator --storage-path=./storage/sso.db --migrations-path=./migrations
-      
+
   test-migrate:
-    # Вместо migrate можем просто mig
     aliases:
       - test-mig
-    # Описание команды
     desc: "Применяем тестовые миграции"
-    # Сама команда
     cmds:
       - go run ./cmd/migrator --storage-path=./storage/sso.db --migrations-path=./tests/migrations --migrations-table=migrations_test
