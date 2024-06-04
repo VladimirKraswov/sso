@@ -13,6 +13,7 @@ tasks:
     # Сама команда
     cmds:
       - go run ./cmd/migrator --storage-path=./storage/sso.db --migrations-path=./migrations
+      
   test-migrate:
     # Вместо migrate можем просто mig
     aliases:
