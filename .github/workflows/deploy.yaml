@@ -39,12 +39,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.20.2 # Указываем какую версию хотим юзать
+          go-version: 1.23 # Указываем какую версию хотим юзать
       # Скачиваем зависимости и выполняем билд нашего приложения и на выходе получаем бинарный файл grpc-auth
       - name: Build app
         run: |
           go mod download
           go build -o grpc-auth ./cmd/sso
+      # Компилируем наш мигратор, с помощью которого ниже будем применять миграции
       - name: Build migrator
         run: |
           go build -o migrator ./cmd/migrator
