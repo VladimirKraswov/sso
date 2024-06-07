@@ -16,17 +16,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest # Мы хотим запускать эти команды на ранер сервере гита с ОС ubuntu-latest 
     env: # Указываем переменные окружения которые будут юзатся далее
-      HOST: root@5.189.237.115 # ip адрес сервера и имя пользователя
-      DEPLOY_DIRECTORY: /root/apps/url-shortener # Директория на удаленном сервере в которую будет происходить деплой
-      CONFIG_PATH: /root/apps/url-shortener/config/prod.yaml # Путь до нашего конфига для продакшена
+      HOST: root@185.10.184.27 # ip адрес сервера и имя пользователя
+      DEPLOY_DIRECTORY: /root/apps/grpc-auth  # Директория на удаленном сервере в которую будет происходить деплой
+      CONFIG_PATH: /root/apps/grpc-auth/config/prod.yaml # Путь до нашего конфига для продакшена
       # ENV_FILE_PATH: /root/apps/url-shortener/config.env # 
 
     steps: # Те шаги которые github actions должен по порядку выполнить
       # checkout репазитория, гит забирает себе нашу репу и что-то будет далее с ней делать
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
         with:
-          repository: 'https://github.com/VladimirKraswov/sso/'
           ref: ${{ github.event.inputs.tag }}
       # Проверяем существует ли тот тэг который мы указали во время деплоя
       - name: Check if tag exists # 
