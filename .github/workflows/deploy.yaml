@@ -37,7 +37,7 @@ jobs:
           fi
       # Устанавливаем golang
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.23 # Указываем какую версию хотим юзать
       # Скачиваем зависимости и выполняем билд нашего приложения и на выходе получаем бинарный файл grpc-auth
