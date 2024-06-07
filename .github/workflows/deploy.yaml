@@ -24,7 +24,7 @@ jobs:
     steps: # Те шаги которые github actions должен по порядку выполнить
       # checkout репазитория, гит забирает себе нашу репу и что-то будет далее с ней делать
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.tag }}
       # Проверяем существует ли тот тэг который мы указали во время деплоя
