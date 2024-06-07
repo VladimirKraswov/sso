@@ -1,0 +1,94 @@
+name: Deploy App
+
+name: Deploy App # Имя действия которое мы описываем
+
+# Описываем в каких случаях будет тригирится наше действие, 
+# например при каждом пуше в нужную ветки или при создании нового тега в этой ветке
+# будет происходить автоматический деплой
+# Но можно добавить больше контроля над этими действиями, например если я сам хочу жать кнопку деплой и выбирать нужный тег,
+
+on:
+  workflow_dispatch: # ручной запуск
+    inputs: # Ждем определенного ввота
+      tag: # Этом инпуте у нас будет определенный тэк
+        description: 'Tag to deploy' # Описание тега
+        required: true # Тэг это обязательное поле
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # Мы хотим запускать эти команды на ранер сервере гита с ОС ubuntu-latest 
+    env: # Указываем переменные окружения которые будут юзатся далее
+      HOST: root@5.189.237.115 # ip адрес сервера и имя пользователя
+      DEPLOY_DIRECTORY: /root/apps/url-shortener # Директория на удаленном сервере в которую будет происходить деплой
+      CONFIG_PATH: /root/apps/url-shortener/config/prod.yaml # Путь до нашего конфига для продакшена
+      # ENV_FILE_PATH: /root/apps/url-shortener/config.env # 
+
+    steps: # Те шаги которые github actions должен по порядку выполнить
+      # checkout репазитория, гит забирает себе нашу репу и что-то будет далее с ней делать
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.tag }}
+      # Проверяем существует ли тот тэг который мы указали во время деплоя
+      - name: Check if tag exists # 
+        run: |
+          git fetch --all --tags
+          if ! git tag | grep -q "^${{ github.event.inputs.tag }}$"; then
+            echo "error: Tag '${{ github.event.inputs.tag }}' not found"
+            exit 1
+          fi
+      # Устанавливаем golang
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.20.2 # Указываем какую версию хотим юзать
+      # Скачиваем зависимости и выполняем билд нашего приложения и на выходе получаем бинарный файл grpc-auth
+      - name: Build app
+        run: |
+          go mod download
+          go build -o grpc-auth ./cmd/sso
+      - name: Build migrator
+        run: |
+          go build -o migrator ./cmd/migrator
+      # Деплой на удаленный сервер, берем бинарник который сбилдили и отправляем его на сервер это происходит с помошью команды rsync
+      #  echo "$DEPLOY_SSH_KEY" > deploy_key.pem - Доступ к серверу через SSH ключ
+      # Используем приватный SSH который мы сохранили в секретах гитхаба, для того что бы добавить приватный ssh ключ в секреты гита
+      # зайдите на сайт своего гита далее Settings -> Secret and variabkes -> Actions -> Вкладка Secret -> New Secret
+      # Указываем имя DEPLOY_SSH_KEY и в поле Secret вставляем наш приватный ключ
+      # Затем сохраняем наш приватный ключ в файл deploy_key.pem
+      # sync -avz -e 'ssh -i deploy_key.pem - с указанием приватного ключа отправляем бинарник на удаленный сервер
+      - name: Deploy to VM
+        run: |
+          sudo apt-get install -y ssh rsync
+          echo "$DEPLOY_SSH_KEY" > deploy_key.pem
+          chmod 600 deploy_key.pem
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.HOST }} "mkdir -p ${{ env.DEPLOY_DIRECTORY }}"
+          rsync -avz -e 'ssh -i deploy_key.pem -o StrictHostKeyChecking=no' --exclude='.git' ./ ${{ env.HOST }}:${{ env.DEPLOY_DIRECTORY }}
+          rsync -avz -e 'ssh -i deploy_key.pem -o StrictHostKeyChecking=no' ./migrator ${{ env.HOST }}:${{ env.DEPLOY_DIRECTORY }}/migrator
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      # Удаляем старый файл с конфигурацией systemd
+      # systemd - утилита которая всегда присутствует на unix системах, 
+      # она автоматически будет выполнять запуск программы при старте системы или после падения программы перезапускает ее
+      # Также systemd сохраняет логи программы в журнал, для того что бы эта утилита работала нужен файл конфигурации 
+      - name: Remove old systemd service file
+        run: |
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.HOST }} "rm -f /etc/systemd/system/grpc-auth.service"
+      - name: List workspace contents
+      # Для дебага выводим список файлов по указанному пути
+        run: |
+          echo "Listing deployment folder contents:"
+          ls -la ${{ github.workspace }}/deployment
+      # Копируем новую конфигурацию systemd
+      - name: Copy systemd service file
+        run: |
+          scp -i deploy_key.pem -o StrictHostKeyChecking=no ${{ github.workspace }}/deployment/grpc-auth.service ${{ env.HOST }}:/tmp/grpc-auth.service
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.HOST }} "mv /tmp/grpc-auth.service /etc/systemd/system/grpc-auth.service"
+      # Запускаем миграции
+      - name: Run migrations
+        run: |
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.HOST }} "${{ env.DEPLOY_DIRECTORY }}/migrator --storage-path=${{ env.DEPLOY_DIRECTORY }}/sso.db --migrations-path=${{ env.DEPLOY_DIRECTORY }}/migrations"
+      # Запускаем наше приложение
+      - name: Start application
+        run: |
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.HOST }} "systemctl daemon-reload && systemctl restart grpc-auth.service"
